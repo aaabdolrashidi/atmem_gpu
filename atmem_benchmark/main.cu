@@ -50,13 +50,13 @@ int main(int argc, char* argv[])
 	// Host array
 	in_h = (float*)malloc(num_elements*sizeof(float));
 
-	printf("Input: ");
-	for (int i = 0; i<num_elements; i++)
-	{
-		in_h[i] = (float)(rand() % 1000) / 100.0;
-		printf("%f ", in_h[i]);
-	}
-	printf("\n");
+//	printf("Input: ");
+//	for (int i = 0; i<num_elements; i++)
+//	{
+//		in_h[i] = (float)(rand() % 1000) / 100.0;
+//		printf("%f ", in_h[i]);
+//	}
+//	printf("\n");
 
 	printf("Allocating device variables...\n");
 
@@ -79,12 +79,12 @@ int main(int argc, char* argv[])
 	cudaDeviceSynchronize();
 
 	// Print output
-	printf("Output: ");
-	for (int i = 0; i<num_elements; i++)
-	{
-		printf("%f ", in_h[i]);
-	}
-	printf("\n");
+//	printf("Output: ");
+//	for (int i = 0; i<num_elements; i++)
+//	{
+//		printf("%f ", in_h[i]);
+//	}
+//	printf("\n");
 
 	cudaFree(in_d);
 	free(in_h);
