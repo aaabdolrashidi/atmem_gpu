@@ -1,4 +1,4 @@
-typedef int TimeType;
+typedef unsigned long long TimeType;
 /******************************************************************************
 * Host Functions
 *******************************************************************************/
@@ -28,7 +28,7 @@ __global__ void lmwTest_baseline(float* data, float scalar, int blockSize, TimeT
 	end_time = clock64();
 	temp = end_time - start_time;
 	elapsed_time[blockIdx.x] = temp;
-	//printf("Elapsed time: %d\n", temp);
+	// printf("Elapsed time: %u\n", temp);
 }
 
 __global__ void lmwTest_atomic(float* data, float scalar, int blockSize, TimeType* elapsed_time) {
@@ -43,15 +43,16 @@ __global__ void lmwTest_atomic(float* data, float scalar, int blockSize, TimeTyp
 	end_time = clock64();
 	temp = end_time - start_time;
 	elapsed_time[blockIdx.x] = temp;
-	//printf("Elapsed time: %d\n", temp);
+	printf("Elapsed time: %u\n", temp);
 }
 
 /******************************************************************************
 * End of Kernel Function Definitions; proceeding to the invocation section
 *******************************************************************************/
 
-void atmem_bench(float* input, unsigned int num_elements, unsigned int block_size, int mode=0) {
+void atmem_bench(float* input, unsigned int num_elements, unsigned int block_size, int mode = 0) {
 	int num_blocks = (num_elements - 1) / block_size + 1;
+	printf("Number of blocks: %d\n", num_blocks);
 	// Setting up time parameters
 	TimeType* elapsed_time_d;
 	TimeType* elapsed_time_h;
@@ -76,7 +77,6 @@ void atmem_bench(float* input, unsigned int num_elements, unsigned int block_siz
 		lmwTest_baseline << < num_blocks, block_size >> > (input, 1.0, block_size, elapsed_time_d);
 	else if (mode == 1)
 		lmwTest_atomic << < num_blocks, block_size >> > (input, 1.0, block_size, elapsed_time_d);
-
 	cudaEventRecord(stop);
 
 	cudaEventSynchronize(stop);
@@ -89,7 +89,7 @@ void atmem_bench(float* input, unsigned int num_elements, unsigned int block_siz
 	cudaMemcpy(elapsed_time_h, elapsed_time_d, num_blocks * sizeof(TimeType), cudaMemcpyDeviceToHost);
 	cudaDeviceSynchronize();
 	printf("Total elapsed kernel time %f ms\n", total_elapsed_time);
-	printf("Max in-SM cycles: %d cycles\n", find_max(elapsed_time_h, num_blocks));
+	printf("Max in-SM cycles: %u cycles\n", find_max(elapsed_time_h, num_blocks));
 
 	free(elapsed_time_h);
 	cudaFree(elapsed_time_d);

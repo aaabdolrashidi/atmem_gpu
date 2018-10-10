@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
 	float *in_h;
 	float *in_d;
 	unsigned int num_elements, block_size;
-	unsigned int mode;
+	int mode;
 
 	if (argc == 1) {
 		num_elements = 1000;
@@ -44,20 +44,24 @@ int main(int argc, char* argv[])
 			"\n");
 		exit(0);
 	}
-	// Print all inputs
+	// Print all parameters
 	printf("Number of elements = %u\nBlock size = %u\nMode = %s (%d)\n", num_elements, block_size, (mode == 0) ? "BASELINE" : "ATOMIC", mode);
 
 	// Host array
 	in_h = (float*)malloc(num_elements*sizeof(float));
+	for (int i = 0; i<num_elements; i++)
+	{
+		in_h[i] = (float)(rand() % 1000) / 100.0;
+	}
 
-//	printf("Input: ");
-//	for (int i = 0; i<num_elements; i++)
-//	{
-//		in_h[i] = (float)(rand() % 1000) / 100.0;
-//		printf("%f ", in_h[i]);
-//	}
-//	printf("\n");
-
+	// Print input
+	//printf("Input: ");
+	//for (int i = 0; i<num_elements; i++)
+	//{
+	//printf("%f ", in_h[i]);
+	//}
+	//printf("\n");
+	
 	printf("Allocating device variables...\n");
 
 	cudaMalloc((void**)&in_d, num_elements * sizeof(float));
@@ -77,15 +81,15 @@ int main(int argc, char* argv[])
 	printf("Copying data from device to host...\n");
 	cudaMemcpy(in_h, in_d, num_elements * sizeof(float), cudaMemcpyDeviceToHost);
 	cudaDeviceSynchronize();
-
+	
 	// Print output
-//	printf("Output: ");
-//	for (int i = 0; i<num_elements; i++)
-//	{
-//		printf("%f ", in_h[i]);
-//	}
-//	printf("\n");
-
+	//printf("Output: ");
+	//for (int i = 0; i<num_elements; i++)
+	//{
+	//	printf("%f ", in_h[i]);
+	//}
+	//printf("\n");
+	
 	cudaFree(in_d);
 	free(in_h);
 
