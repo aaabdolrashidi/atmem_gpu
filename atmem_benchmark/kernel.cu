@@ -43,7 +43,7 @@ __global__ void lmwTest_atomic(float* data, float scalar, int blockSize, TimeTyp
 	end_time = clock64();
 	temp = end_time - start_time;
 	elapsed_time[blockIdx.x] = temp;
-	printf("Elapsed time: %u\n", temp);
+	// printf("Elapsed time: %u\n", temp);
 }
 
 /******************************************************************************
