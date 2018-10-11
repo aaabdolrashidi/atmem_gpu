@@ -62,8 +62,8 @@ __global__ void lmwTest_atomic(float* data, float scalar, int blockSize, TimeTyp
 * End of Kernel Function Definitions; proceeding to the invocation section
 *******************************************************************************/
 
-void atmem_bench(float* input, unsigned int num_elements, unsigned int block_size, int mode = 0) {
-	int num_blocks = (num_elements - 1) / block_size + 1;
+void atmem_bench(float* input, unsigned int num_elements, unsigned int memory_block_size, unsigned int thread_block_size, int mode = 0) {
+	int num_blocks = (num_elements  / memory_block_size)/thread_block_size;
 	printf("Number of blocks: %d\n", num_blocks);
 	// Setting up time parameters
 	TimeType* elapsed_time_d;
@@ -87,9 +87,9 @@ void atmem_bench(float* input, unsigned int num_elements, unsigned int block_siz
 	// Invoking Kernel
 	cudaEventRecord(start);
 	if (mode == 0)
-		lmwTest_baseline << < num_blocks, block_size >> > (input, 1.0, block_size, elapsed_time_d);
+		lmwTest_baseline << < num_blocks, thread_block_size >> > (input, 1.0, thread_block_size, elapsed_time_d);
 	else if (mode == 1)
-		lmwTest_atomic << < num_blocks, block_size >> > (input, 1.0, block_size, elapsed_time_d);
+		lmwTest_atomic << < num_blocks, thread_block_size >> > (input, 1.0, thread_block_size, elapsed_time_d);
 	cudaDeviceSynchronize();
 	cudaEventRecord(stop);
 

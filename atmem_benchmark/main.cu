@@ -7,28 +7,32 @@ int main(int argc, char* argv[])
 {
 	float *in_h;
 	float *in_d;
-	unsigned int num_elements, block_size;
+	unsigned int num_elements, memory_block_size, thread_block_size;
 	int mode;
 
-	if (argc == 1) {
-		num_elements = 1000;
-		block_size = 64;
-		mode = 0;
-	}
-	else if (argc == 2) {
+	num_elements = 1024*1024;
+	
+	memory_block_size = 64;
+	thread_block_size = 512;
+	mode = 0;
+
+/*	if (argc == 2) {
 		num_elements = atoi(argv[1]);
-		block_size = 64;
-		mode = 0;
 	}
 	else if (argc == 3) {
 		num_elements = atoi(argv[1]);
-		block_size = atoi(argv[2]);
-		mode = 0;
+		thread_block_size = atoi(argv[2]);
 	}
 	else if (argc == 4) {
 		num_elements = atoi(argv[1]);
-		block_size = atoi(argv[2]);
-		mode = atoi(argv[3]);
+		thread_block_size = atoi(argv[2]);
+		memory_block_size = atoi(argv[3]);
+	}
+	else*/ if (argc == 5) {
+		num_elements = atoi(argv[1]);
+		thread_block_size = atoi(argv[2]);
+		memory_block_size = atoi(argv[3]);
+		mode = atoi(argv[4]);
 		if (mode != 0 && mode != 1)
 		{
 			printf("ERROR: Mode can only be an integer within [0, 1]!");
@@ -37,15 +41,12 @@ int main(int argc, char* argv[])
 	}
 	else {
 		printf("\n    Invalid input parameters!"
-			"\n    Usage: ./atmem_bench            # Number of elements: 1,000\tBlock size: 64\tMode: 0"
-			"\n    Usage: ./atmem_bench <n>        # Number of elements: n\tBlock size: 64\tMode: 0"
-			"\n    Usage: ./atmem_bench <n> <b>    # Number of elements: n\tBlock size: b\tMode: 0"
-			"\n    Usage: ./atmem_bench <n> <b> <m>    # Number of elements: n\tMode: m (0=Baseline, 1=Atomic)"
+			"\n    Usage: ./atmem_bench [num_elements] [thread_block_size] [memory_block_size] [mode=0|1])"
 			"\n");
 		exit(0);
 	}
 	// Print all parameters
-	printf("Number of elements = %u\nBlock size = %u\nMode = %s (%d)\n", num_elements, block_size, (mode == 0) ? "BASELINE" : "ATOMIC", mode);
+	printf("Number of elements = %u\nThread Block size = %u\nMemory Block size = %u\nMode = %s (%d)\n", num_elements, thread_block_size, memory_block_size, (mode == 0) ? "BASELINE" : "ATOMIC", mode);
 
 	// Host array
 	in_h = (float*)malloc(num_elements*sizeof(float));
@@ -75,7 +76,7 @@ int main(int argc, char* argv[])
 	// Kernel Launch
 	printf("Launching kernel...\n");
 
-	atmem_bench(in_d, num_elements, block_size, mode);
+	atmem_bench(in_d, num_elements, thread_block_size, memory_block_size, mode);
 
 	// D to H
 	printf("Copying data from device to host...\n");
