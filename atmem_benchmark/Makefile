@@ -8,7 +8,7 @@ OBJ	        = main.o
 default: $(EXE)
 
 main.o: main.cu kernel.cu
-	$(NVCC) -c -o $@ main.cu $(NVCC_FLAGS)
+	$(NVCC) -G -c -o $@ main.cu $(NVCC_FLAGS)
 
 
 $(EXE): $(OBJ)
