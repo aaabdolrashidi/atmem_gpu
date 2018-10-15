@@ -73,7 +73,7 @@ void atmem_bench(float* input, unsigned int num_elements, unsigned int memory_bl
 
 	elapsed_time_h = (TimeType*)malloc(elapsed_time_size * sizeof(TimeType));
 	for (int i = 0; i < elapsed_time_size; i++)
-		elapsed_time_h[i] = 3;	// Non-zero random value
+		elapsed_time_h[i] = -1;	// Non-zero random value
 
 	cudaMalloc((void**)&elapsed_time_d, elapsed_time_size * sizeof(TimeType));
 	cudaMemset(elapsed_time_d, 0, elapsed_time_size * sizeof(TimeType));
