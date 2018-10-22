@@ -47,10 +47,10 @@ do
     for tb_size in ${TB_SIZE[@]}
     do
       echo ">>> TB size = ${tb_size}"
-      ./${EXE} ${num_elem} ${tb_size} ${mem_size} 0 > LOG
+      ./${EXE} ${num_elem} ${tb_size} ${mem_size} 0 0 > LOG
       printf ",$(cat LOG | grep "Total elapsed kernel time" | awk '{print $(NF-1)}')" >> ${OUTPUT_TIME}
       printf ",$(cat LOG | grep "Max in-SM cycles" | awk '{print $(NF-1)}')" >> ${OUTPUT_CYCLE}
-      ./${EXE} ${num_elem} ${tb_size} ${mem_size} 1 > LOG
+      ./${EXE} ${num_elem} ${tb_size} ${mem_size} 1 0 > LOG
       printf ",$(cat LOG | grep "Total elapsed kernel time" | awk '{print $(NF-1)}')" >> ${OUTPUT_TIME}
       printf ",$(cat LOG | grep "Max in-SM cycles" | awk '{print $(NF-1)}')" >> ${OUTPUT_CYCLE}
     done

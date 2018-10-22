@@ -17,6 +17,16 @@ TimeType find_max(TimeType* time_array, int length)
 /******************************************************************************
 * Kernels
 *******************************************************************************/
+// Cache warm-up
+__global__ void cacheWarmup(float* data, int length) {
+	int index = blockIdx.x*blockDim.x + threadIdx.x;
+	float temp = 0;
+	if (index < length)
+	{
+		temp = data[index];
+	}
+}
+
 // Mode 0
 __global__ void lmwTest_baseline(float* data, float scalar, int blockSize, TimeType* elapsed_time) {
 	TimeType start_time, end_time, temp;
@@ -166,8 +176,10 @@ __global__ void vectorAtomicAdd(float* data, float scalar, int length, TimeType*
 * End of Kernel Function Definitions; proceeding to the invocation section
 *******************************************************************************/
 
-void atmem_bench(float* input, unsigned int num_elements, unsigned int memory_block_size, unsigned int thread_block_size, int mode = 0) {
-	int num_blocks = (num_elements / memory_block_size) / thread_block_size;
+void atmem_bench(float* input, unsigned int num_elements, unsigned int memory_block_size, unsigned int thread_block_size, int mode = 0, int cache_warmup_en = 0) {
+	int num_blocks;
+	if(mode < 2) num_blocks = (num_elements / memory_block_size) / thread_block_size;
+	else num_blocks = (num_elements - 1) / thread_block_size + 1;
 	printf("Number of blocks: %d\n", num_blocks);
 	// Setting up time parameters
 	TimeType* elapsed_time_d;
@@ -182,6 +194,10 @@ void atmem_bench(float* input, unsigned int num_elements, unsigned int memory_bl
 	cudaMalloc((void**)&elapsed_time_d, elapsed_time_size * sizeof(TimeType));
 	cudaMemset(elapsed_time_d, 0, elapsed_time_size * sizeof(TimeType));
 	cudaDeviceSynchronize();
+
+	// Cache warm-up kernel
+	if(cache_warmup_en) cacheWarmup << < num_blocks, thread_block_size >> > (input, num_elements);
+
 
 	// Events
 	cudaEvent_t start, stop;
@@ -219,6 +235,7 @@ void atmem_bench(float* input, unsigned int num_elements, unsigned int memory_bl
 	if (cuda_status != cudaSuccess)
 	{
 		printf("\n*CUDA Error %d during cudaMemcpy(D -> H)!*\n\n", cuda_status);
+		exit(1);
 	}
 	cudaDeviceSynchronize();
 	//for (int i = 0; i < num_blocks; i++)

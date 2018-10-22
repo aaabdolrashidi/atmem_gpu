@@ -8,19 +8,21 @@ int main(int argc, char* argv[])
 	float *in_h;
 	float *in_d;
 	unsigned int num_elements, memory_block_size, thread_block_size;
-	int mode;
+	int mode, cache_warmup_en;
 
 	num_elements = 1024 * 1024;
 
 	memory_block_size = 64;
 	thread_block_size = 512;
 	mode = 0;
+	cache_warmup_en = 0;
 
-	if (argc == 5) {
+	if (argc == 6) {
 		num_elements = atoi(argv[1]);
 		thread_block_size = atoi(argv[2]);
 		memory_block_size = atoi(argv[3]);
 		mode = atoi(argv[4]);
+		cache_warmup_en = atoi(argv[5]);
 		if (mode < 0 || mode > 6)
 		{
 			printf("ERROR: Mode can only be an integer within [0, 6]!");
@@ -29,13 +31,15 @@ int main(int argc, char* argv[])
 	}
 	else {
 		printf("\n    Invalid input parameters!"
-			"\n    Usage: ./atmem_bench [num_elements] [thread_block_size] [memory_block_size] [mode=0..5])"
+			"\n    Usage: ./atmem_bench [num_elements] [thread_block_size] [memory_block_size] [mode=0..6] [cache_warmup_en=0..1])"
 			"\n");
 		exit(0);
 	}
 	// Print all parameters
-	printf("Number of elements = %u\nThread Block size = %u\nMemory Block size (Interval in Mode 5) = %u\nMode = %d (%s)\n",
-		num_elements, thread_block_size, memory_block_size, mode,
+	printf("Number of elements = %u\nThread Block size = %u\nMemory Block size (Interval in Mode 5) = %u\nCache warmup = %s\nMode = %d (%s)\n",
+		num_elements, thread_block_size, memory_block_size, 
+		(cache_warmup_en == 0) ? "DISABLED" : "ENABLED",
+		mode,
 		(mode == 0) ? "BASELINE" :
 		(mode == 1) ? "ATOMIC" :
 		(mode == 2) ? "1 THREAD TO 1 ELEMENT" :
@@ -75,7 +79,7 @@ int main(int argc, char* argv[])
 	// Kernel Launch
 	printf("Launching kernel...\n");
 
-	atmem_bench(in_d, num_elements, thread_block_size, memory_block_size, mode);
+	atmem_bench(in_d, num_elements, thread_block_size, memory_block_size, mode, cache_warmup_en);
 
 	// D to H
 	printf("Copying data from device to host...\n");
