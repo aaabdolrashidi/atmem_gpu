@@ -10,43 +10,40 @@ int main(int argc, char* argv[])
 	unsigned int num_elements, memory_block_size, thread_block_size;
 	int mode;
 
-	num_elements = 1024*1024;
-	
+	num_elements = 1024 * 1024;
+
 	memory_block_size = 64;
 	thread_block_size = 512;
 	mode = 0;
 
-/*	if (argc == 2) {
-		num_elements = atoi(argv[1]);
-	}
-	else if (argc == 3) {
-		num_elements = atoi(argv[1]);
-		thread_block_size = atoi(argv[2]);
-	}
-	else if (argc == 4) {
-		num_elements = atoi(argv[1]);
-		thread_block_size = atoi(argv[2]);
-		memory_block_size = atoi(argv[3]);
-	}
-	else*/ if (argc == 5) {
+	if (argc == 5) {
 		num_elements = atoi(argv[1]);
 		thread_block_size = atoi(argv[2]);
 		memory_block_size = atoi(argv[3]);
 		mode = atoi(argv[4]);
-		if (mode != 0 && mode != 1)
+		if (mode < 0 || mode > 6)
 		{
-			printf("ERROR: Mode can only be an integer within [0, 1]!");
+			printf("ERROR: Mode can only be an integer within [0, 6]!");
 			exit(0);
 		}
 	}
 	else {
 		printf("\n    Invalid input parameters!"
-			"\n    Usage: ./atmem_bench [num_elements] [thread_block_size] [memory_block_size] [mode=0|1])"
+			"\n    Usage: ./atmem_bench [num_elements] [thread_block_size] [memory_block_size] [mode=0..5])"
 			"\n");
 		exit(0);
 	}
 	// Print all parameters
-	printf("Number of elements = %u\nThread Block size = %u\nMemory Block size = %u\nMode = %s (%d)\n", num_elements, thread_block_size, memory_block_size, (mode == 0) ? "BASELINE" : "ATOMIC", mode);
+	printf("Number of elements = %u\nThread Block size = %u\nMemory Block size (Interval in Mode 5) = %u\nMode = %d (%s)\n",
+		num_elements, thread_block_size, memory_block_size, mode,
+		(mode == 0) ? "BASELINE" :
+		(mode == 1) ? "ATOMIC" :
+		(mode == 2) ? "1 THREAD TO 1 ELEMENT" :
+		(mode == 3) ? "1 WARP TO 1 ELEMENT" :
+		(mode == 4) ? "1 WARP TO 32 ELEMENTS" :
+		(mode == 5) ? "1 WARP TO 32 FAR ELEMENTS" :
+		(mode == 6) ? "1 VECTOR ATOMIC ADD" :
+		"ERROR");
 
 	// Host array
 	in_h = (float*)malloc(num_elements*sizeof(float));
@@ -56,13 +53,15 @@ int main(int argc, char* argv[])
 	}
 
 	// Print input
-	//printf("Input: ");
-	//for (int i = 0; i<num_elements; i++)
-	//{
-	//printf("%f ", in_h[i]);
-	//}
-	//printf("\n");
-	
+	#if IS_ARRAY_PRINT_ENABLED == 1
+		printf("Input: ");
+		for (int i = 0; i<num_elements; i++)
+		{
+		printf("%f ", in_h[i]);
+		}
+		printf("\n");
+	#endif
+
 	printf("Allocating device variables...\n");
 
 	cudaMalloc((void**)&in_d, num_elements * sizeof(float));
@@ -82,15 +81,18 @@ int main(int argc, char* argv[])
 	printf("Copying data from device to host...\n");
 	cudaMemcpy(in_h, in_d, num_elements * sizeof(float), cudaMemcpyDeviceToHost);
 	cudaDeviceSynchronize();
-	
+
 	// Print output
-	//printf("Output: ");
-	//for (int i = 0; i<num_elements; i++)
-	//{
-	//	printf("%f ", in_h[i]);
-	//}
-	//printf("\n");
+	#if IS_ARRAY_PRINT_ENABLED == 1
+		printf("Output: ");
+		for (int i = 0; i<num_elements; i++)
+		{
+			printf("%f ", in_h[i]);
+		}
+		printf("\n");
+	#endif
 	
+	// Free memory
 	cudaFree(in_d);
 	free(in_h);
 
