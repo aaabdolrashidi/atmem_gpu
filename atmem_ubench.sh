@@ -1,7 +1,7 @@
 # !/bin/bash
 # Usage: ./atmem_ubench.sh [list of number of elements (default = 2^20)]
 # Variables
-EXE=TestCUDA.exe
+EXE=atmem_benchmark/atmem_bench
 NUM_ELEM=(1048576)
 MEM_BLOCK_SIZE=(2 4 8 16 32 64 128 256 512 1024 2048)
 TB_SIZE=(1 2 4 8 16 32 64 128 256 512 1024)
