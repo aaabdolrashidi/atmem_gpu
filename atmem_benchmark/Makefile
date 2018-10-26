@@ -14,5 +14,8 @@ main.o: main.cu kernel.cu
 $(EXE): $(OBJ)
 	$(NVCC) $(OBJ) -o $(EXE) $(LD_FLAGS)
 
+ptx:
+	$(NVCC) -ptx kernel.cu
+
 clean:
 	rm -rf *.o $(EXE)

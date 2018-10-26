@@ -1,4 +1,9 @@
 #define IS_ARRAY_PRINT_ENABLED 0
+#define REPEAT64(N) N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N
+#define REPEAT128(N) N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N
+#define REPEAT256(N) N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N
+#define REPEAT512(N) N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N
+const int reps = 64;
 typedef signed long long TimeType;
 /******************************************************************************
 * Host Functions
@@ -19,8 +24,16 @@ TimeType find_max(TimeType* time_array, int length)
 *******************************************************************************/
 // Cache warm-up
 __global__ void cacheWarmup(float* data, int length) {
-	int index = blockIdx.x*blockDim.x + threadIdx.x;
-	float temp = 0;
+	volatile int index = blockIdx.x*blockDim.x + threadIdx.x;
+	volatile float temp = 0;
+	if (index < length)
+	{
+		temp = data[index];
+	}
+}
+__device__ void cacheWarmup_Device(float* data, int length) {
+	volatile int index = blockIdx.x*blockDim.x + threadIdx.x;
+	volatile float temp = 0;
 	if (index < length)
 	{
 		temp = data[index];
@@ -74,76 +87,72 @@ __global__ void lmwTest_atomic(float* data, float scalar, int blockSize, TimeTyp
 // Mode 2: One thread performs one atomic add on one element
 __global__ void oneThreadOneVarAtomicAdd(float* data, float scalar, TimeType* elapsed_time) {
 	TimeType start_time, end_time, temp;
-	if (threadIdx.x == 0) start_time = clock64();
-	__syncthreads();
-	// Begin	
-	if (threadIdx.x == 0)
-	{
-		atomicAdd(&(data[0]), scalar);
-	}
+	start_time = clock64();
+	// Begin
+	REPEAT64(atomicAdd(&(data[0]), scalar); __threadfence();)
 	// End
-	__syncthreads();
-	if (threadIdx.x == 0)
-	{
-		end_time = clock64();
-		temp = end_time - start_time;
-		elapsed_time[blockIdx.x] = temp;
-		// printf("Elapsed time: %lld\n", temp);
-	}
-	__threadfence();
+	end_time = clock64();
+	temp = (end_time - start_time) / reps;
+	elapsed_time[blockIdx.x] = temp;
+	// printf("Start: %lld\nEnd: %lld\n", start_time, end_time);
+	// printf("Elapsed time: %lld\n", temp);
 }
 
 // Mode 3: All threads in a warp perform one atomic add on one element
 __global__ void oneWarpOneVarAtomicAdd(float* data, float scalar, TimeType* elapsed_time) {
+	cacheWarmup_Device(data, 32);
+
 	TimeType start_time, end_time, temp;
 	if (threadIdx.x == 0) start_time = clock64();
 	__syncthreads();
 	// Begin	
-	atomicAdd(&(data[0]), scalar);
+	REPEAT64(atomicAdd(&(data[0]), scalar); __threadfence();)
 	// End
 	__syncthreads();
 	if (threadIdx.x == 0)
 	{
 		end_time = clock64();
-		temp = end_time - start_time;
+		temp = (end_time - start_time) / reps;
 		elapsed_time[blockIdx.x] = temp;
 		// printf("Elapsed time: %lld\n", temp);
 	}
-	__threadfence();
 }
 
 // Mode 4: Every thread in a warp performs one atomic add on one element (i.e. 32 elements in total)
 __global__ void oneWarp32VarAtomicAdd(float* data, float scalar, TimeType* elapsed_time) {
+	cacheWarmup_Device(data, 32);
+
 	TimeType start_time, end_time, temp;
 	if (threadIdx.x == 0) start_time = clock64();
 	__syncthreads();
 	// Begin	
-	atomicAdd(&data[threadIdx.x], scalar);
+	REPEAT64(atomicAdd(&data[threadIdx.x], scalar); __threadfence();)
 	// End
 	__syncthreads();
 	if (threadIdx.x == 0)
 	{
 		end_time = clock64();
-		temp = end_time - start_time;
+		temp = (end_time - start_time) / reps;
 		elapsed_time[blockIdx.x] = temp;
 		// printf("Elapsed time: %lld\n", temp);
 	}
-	__threadfence();
 }
 
 // Mode 5: Like Mode 4, but the elements are far from one another.
 __global__ void oneWarp32VarAtomicAdd_Far(float* data, float scalar, int interval, TimeType* elapsed_time) {
+	cacheWarmup_Device(data, 32);
+
 	TimeType start_time, end_time, temp;
 	if (threadIdx.x == 0) start_time = clock64();
 	__syncthreads();
 	// Begin	
-	atomicAdd(&data[interval*threadIdx.x], scalar);
+	REPEAT64(atomicAdd(&data[interval*threadIdx.x], scalar); __threadfence();)
 	// End
 	__syncthreads();
 	if (threadIdx.x == 0)
 	{
 		end_time = clock64();
-		temp = end_time - start_time;
+		temp = (end_time - start_time) / reps;
 		elapsed_time[blockIdx.x] = temp;
 		// printf("Elapsed time: %lld\n", temp);
 	}
@@ -152,6 +161,8 @@ __global__ void oneWarp32VarAtomicAdd_Far(float* data, float scalar, int interva
 
 // Mode 6: All elements in the vector perform one atomic add to a corresponding element.
 __global__ void vectorAtomicAdd(float* data, float scalar, int length, TimeType* elapsed_time) {
+	cacheWarmup_Device(data, 32);
+
 	TimeType start_time, end_time, temp;
 	if (threadIdx.x == 0) start_time = clock64();
 	__syncthreads();
@@ -159,18 +170,31 @@ __global__ void vectorAtomicAdd(float* data, float scalar, int length, TimeType*
 	int index = blockIdx.x*blockDim.x + threadIdx.x;
 	if (index < length)
 	{
-		atomicAdd(&data[index], scalar);
+		REPEAT64(atomicAdd(&data[index], scalar); __threadfence();)
 	}
 	// End
 	__syncthreads();
 	if (threadIdx.x == 0)
 	{
 		end_time = clock64();
-		temp = end_time - start_time;
+		temp = (end_time - start_time) / reps;
 		elapsed_time[blockIdx.x] = temp;
 		// printf("Elapsed time: %lld\n", temp);
 	}
-	__threadfence();
+}
+
+// Mode 7: Clock64 overhead
+__global__ void clock64_overhead(TimeType* elapsed_time) {
+	TimeType start_time, end_time, temp;
+	start_time = clock64();
+	// Begin
+	// ... Nothing!
+	// End
+	end_time = clock64();
+	temp = (end_time - start_time);
+	elapsed_time[blockIdx.x] = temp;
+	// printf("Start: %lld\nEnd: %lld\n", start_time, end_time);
+	// printf("Elapsed time: %lld\n", temp);
 }
 /******************************************************************************
 * End of Kernel Function Definitions; proceeding to the invocation section
@@ -213,13 +237,15 @@ void atmem_bench(float* input, unsigned int num_elements, unsigned int memory_bl
 	else if (mode == 2)
 		oneThreadOneVarAtomicAdd << < 1, 1 >> > (input, 1.0, elapsed_time_d);
 	else if (mode == 3)
-		oneWarpOneVarAtomicAdd << < 1, 32 >> > (input, 1.0, elapsed_time_d);
+		oneWarpOneVarAtomicAdd << < 1, thread_block_size >> > (input, 1.0, elapsed_time_d);
 	else if (mode == 4)
-		oneWarp32VarAtomicAdd << < 1, 32 >> > (input, 1.0, elapsed_time_d);
+		oneWarp32VarAtomicAdd << < 1, thread_block_size >> > (input, 1.0, elapsed_time_d);
 	else if (mode == 5)
-		oneWarp32VarAtomicAdd_Far << < 1, 32 >> > (input, 1.0, memory_block_size, elapsed_time_d);
+		oneWarp32VarAtomicAdd_Far << < 1, thread_block_size >> > (input, 1.0, memory_block_size, elapsed_time_d);
 	else if (mode == 6)
 		vectorAtomicAdd << < num_blocks, thread_block_size >> > (input, 1.0, num_elements, elapsed_time_d);
+	else if (mode == 7)
+		clock64_overhead << <1, 1 >> > (elapsed_time_d);
 	cudaDeviceSynchronize();
 	cudaEventRecord(stop);
 

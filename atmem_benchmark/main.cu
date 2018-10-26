@@ -23,15 +23,15 @@ int main(int argc, char* argv[])
 		memory_block_size = atoi(argv[3]);
 		mode = atoi(argv[4]);
 		cache_warmup_en = atoi(argv[5]);
-		if (mode < 0 || mode > 6)
+		if (mode < 0 || mode > 7)
 		{
-			printf("ERROR: Mode can only be an integer within [0, 6]!");
+			printf("ERROR: Mode can only be an integer within [0, 7]!");
 			exit(0);
 		}
 	}
 	else {
 		printf("\n    Invalid input parameters!"
-			"\n    Usage: ./atmem_bench [num_elements] [thread_block_size] [memory_block_size] [mode=0..6] [cache_warmup_en=0..1])"
+			"\n    Usage: ./atmem_bench [num_elements] [thread_block_size] [memory_block_size] [mode=0..7] [cache_warmup_en=0..1])"
 			"\n");
 		exit(0);
 	}
@@ -47,6 +47,7 @@ int main(int argc, char* argv[])
 		(mode == 4) ? "1 WARP TO 32 ELEMENTS" :
 		(mode == 5) ? "1 WARP TO 32 FAR ELEMENTS" :
 		(mode == 6) ? "1 VECTOR ATOMIC ADD" :
+		(mode == 7) ? "CLOCK64() FUNCTION OVERHEAD" :
 		"ERROR");
 
 	// Host array
