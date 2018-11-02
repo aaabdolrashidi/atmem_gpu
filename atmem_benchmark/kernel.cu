@@ -1,9 +1,12 @@
 #define IS_ARRAY_PRINT_ENABLED 0
+
+const int reps = 512;
+#define REPEAT_FUNC REPEAT512
 #define REPEAT64(N) N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N
 #define REPEAT128(N) N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N
 #define REPEAT256(N) N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N
 #define REPEAT512(N) N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N
-const int reps = 64;
+
 typedef signed long long TimeType;
 /******************************************************************************
 * Host Functions
@@ -89,7 +92,7 @@ __global__ void oneThreadOneVarAtomicAdd(float* data, float scalar, TimeType* el
 	TimeType start_time, end_time, temp;
 	start_time = clock64();
 	// Begin
-	REPEAT64(atomicAdd(&(data[0]), scalar); __threadfence();)
+	REPEAT_FUNC(atomicAdd(&(data[0]), scalar); __threadfence();)
 	// End
 	end_time = clock64();
 	temp = (end_time - start_time) / reps;
@@ -106,7 +109,7 @@ __global__ void oneWarpOneVarAtomicAdd(float* data, float scalar, TimeType* elap
 	if (threadIdx.x == 0) start_time = clock64();
 	__syncthreads();
 	// Begin	
-	REPEAT64(atomicAdd(&(data[0]), scalar); __threadfence();)
+	REPEAT_FUNC(atomicAdd(&(data[0]), scalar); __threadfence();)
 	// End
 	__syncthreads();
 	if (threadIdx.x == 0)
@@ -126,7 +129,7 @@ __global__ void oneWarp32VarAtomicAdd(float* data, float scalar, TimeType* elaps
 	if (threadIdx.x == 0) start_time = clock64();
 	__syncthreads();
 	// Begin	
-	REPEAT64(atomicAdd(&data[threadIdx.x], scalar); __threadfence();)
+	REPEAT_FUNC(atomicAdd(&data[threadIdx.x], scalar); __threadfence();)
 	// End
 	__syncthreads();
 	if (threadIdx.x == 0)
@@ -146,7 +149,7 @@ __global__ void oneWarp32VarAtomicAdd_Far(float* data, float scalar, int interva
 	if (threadIdx.x == 0) start_time = clock64();
 	__syncthreads();
 	// Begin	
-	REPEAT64(atomicAdd(&data[interval*threadIdx.x], scalar); __threadfence();)
+	REPEAT_FUNC(atomicAdd(&data[interval*threadIdx.x], scalar); __threadfence();)
 	// End
 	__syncthreads();
 	if (threadIdx.x == 0)
@@ -170,7 +173,7 @@ __global__ void vectorAtomicAdd(float* data, float scalar, int length, TimeType*
 	int index = blockIdx.x*blockDim.x + threadIdx.x;
 	if (index < length)
 	{
-		REPEAT64(atomicAdd(&data[index], scalar); __threadfence();)
+		REPEAT_FUNC(atomicAdd(&data[index], scalar); __threadfence();)
 	}
 	// End
 	__syncthreads();
@@ -200,7 +203,7 @@ __global__ void clock64_overhead(TimeType* elapsed_time) {
 * End of Kernel Function Definitions; proceeding to the invocation section
 *******************************************************************************/
 
-void atmem_bench(float* input, unsigned int num_elements, unsigned int memory_block_size, unsigned int thread_block_size, int mode = 0, int cache_warmup_en = 0) {
+void atmem_bench(float* input, unsigned int num_elements, unsigned int thread_block_size, unsigned int memory_block_size, int mode = 0, int cache_warmup_en = 0) {
 	int num_blocks;
 	if(mode < 2) num_blocks = (num_elements / memory_block_size) / thread_block_size;
 	else num_blocks = (num_elements - 1) / thread_block_size + 1;
@@ -231,19 +234,19 @@ void atmem_bench(float* input, unsigned int num_elements, unsigned int memory_bl
 	// Invoking Kernel
 	cudaEventRecord(start);
 	if (mode == 0)
-		lmwTest_baseline << < num_blocks, thread_block_size >> > (input, 1.0, thread_block_size, elapsed_time_d);
+		lmwTest_baseline << < num_blocks, thread_block_size >> > (input, 3.1, thread_block_size, elapsed_time_d);
 	else if (mode == 1)
-		lmwTest_atomic << < num_blocks, thread_block_size >> > (input, 1.0, thread_block_size, elapsed_time_d);
+		lmwTest_atomic << < num_blocks, thread_block_size >> > (input, 3.1, thread_block_size, elapsed_time_d);
 	else if (mode == 2)
-		oneThreadOneVarAtomicAdd << < 1, 1 >> > (input, 1.0, elapsed_time_d);
+		oneThreadOneVarAtomicAdd << < 1, 1 >> > (input, 3.1, elapsed_time_d);
 	else if (mode == 3)
-		oneWarpOneVarAtomicAdd << < 1, thread_block_size >> > (input, 1.0, elapsed_time_d);
+		oneWarpOneVarAtomicAdd << < 1, thread_block_size >> > (input, 3.1, elapsed_time_d);
 	else if (mode == 4)
-		oneWarp32VarAtomicAdd << < 1, thread_block_size >> > (input, 1.0, elapsed_time_d);
+		oneWarp32VarAtomicAdd << < 1, thread_block_size >> > (input, 3.1, elapsed_time_d);
 	else if (mode == 5)
-		oneWarp32VarAtomicAdd_Far << < 1, thread_block_size >> > (input, 1.0, memory_block_size, elapsed_time_d);
+		oneWarp32VarAtomicAdd_Far << < 1, thread_block_size >> > (input, 3.1, memory_block_size, elapsed_time_d);
 	else if (mode == 6)
-		vectorAtomicAdd << < num_blocks, thread_block_size >> > (input, 1.0, num_elements, elapsed_time_d);
+		vectorAtomicAdd << < num_blocks, thread_block_size >> > (input, 3.1, num_elements, elapsed_time_d);
 	else if (mode == 7)
 		clock64_overhead << <1, 1 >> > (elapsed_time_d);
 	cudaDeviceSynchronize();
